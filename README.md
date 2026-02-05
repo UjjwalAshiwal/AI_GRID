@@ -35,31 +35,6 @@ Machine Learning (Scikit-learn, Random Forest Regressor)
 
 
 
-🗂️ Project Structure
-project-root/
-│
-├── backend/
-│   ├── app.py                 # Flask server
-│   ├── forecast.py            # ML inference logic
-│   ├── requirements.txt       # Python dependencies
-│   └── ml/
-│       ├── generate_data.py   # Training data generator
-│       ├── train_model.py     # ML training script
-│       ├── training_data.csv  # Generated dataset
-│       └── model.pkl          # Trained ML model
-│
-└── frontend/
-    ├── index.html
-    ├── dashboard.html
-    ├── style.css
-    └── js/
-        ├── main.js
-        ├── simulation.js
-        └── charts.js
-
-
-
-
 ⚙️ Requirements
 
 Software
