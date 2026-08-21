@@ -652,7 +652,7 @@ async function fetchBackendPower() {
     try {
         const ctrl = new AbortController();
         const t = setTimeout(()=>ctrl.abort(), 700);
-        const res = await fetch("http://127.0.0.1:5000/simulate", {
+        const res = await fetch("https://ai-grid-pearl.vercel.app/simulate", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),

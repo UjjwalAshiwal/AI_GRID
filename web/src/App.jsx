@@ -224,7 +224,7 @@ export default function App(){
   // fetch backend
   async function fetchPower(){
     try{
-      const r = await fetch("http://127.0.0.1:5000/simulate",{
+      const r = await fetch("https://ai-grid-pearl.vercel.app/simulate",{
         method:"POST", headers:{"Content-Type":"application/json"},
         body: JSON.stringify({
           sunlight: sRef.sources.solar.light,
@@ -244,7 +244,7 @@ export default function App(){
   }
   async function fetchForecast({ solar_kw, wind_kw, hydro_kw, battery_soc }){
     try{
-      const r = await fetch("http://127.0.0.1:5000/forecast",{
+      const r = await fetch("https://ai-grid-pearl.vercel.app/forecast",{
         method:"POST", headers:{"Content-Type":"application/json"},
         body: JSON.stringify({ solar_kw, wind_kw, hydro_kw, battery_soc })
       })
