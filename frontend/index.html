@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RenewGrid Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./css/style.css">
+</head>
+
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="logo">☀️</div>
+            <h2>RenewGrid Control</h2>
+            <p class="subtitle">Login to your dashboard</p>
+
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input id="username" type="text" placeholder="Enter username" />
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input id="password" type="password" placeholder="Enter password" />
+            </div>
+
+            <div class="form-group">
+                <label for="role">Role</label>
+                <select id="role">
+                    <option value="admin">Admin</option>
+                    <option value="viewer">Viewer</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Dashboard type</label>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:6px;">
+                    <button type="button" id="modeSimBtn" style="padding:10px; border-radius:999px; border:1px solid #fff; background:#fff; color:#0a0a0a; font-family:var(--mono); font-size:11px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;"><i class="fa-solid fa-flask"></i> Simulation</button>
+                    <button type="button" id="modeRealBtn" style="padding:10px; border-radius:999px; border:1px solid var(--border); background:#0a0f12; color:var(--muted); font-family:var(--mono); font-size:11px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;"><i class="fa-solid fa-tower-broadcast"></i> Real</button>
+                </div>
+                <div id="modeHint" style="font-family:var(--mono); font-size:10px; color:var(--muted); margin-top:6px;">Simulated generation, adjustable intensity & live charts.</div>
+            </div>
+
+            <div id="errorMsg" class="error-msg" style="display:none"></div>
+
+            <button id="loginBtn">Login</button>
+            <script>
+                (function(){
+                    let m=localStorage.getItem('dashboardMode')||'simulation';
+                    const sBtn=document.getElementById('modeSimBtn'), rBtn=document.getElementById('modeRealBtn'), hint=document.getElementById('modeHint');
+                    function sync(){
+                        if(m==='simulation'){ sBtn.style.background='#fff'; sBtn.style.color='#0a0a0a'; sBtn.style.borderColor='#fff'; rBtn.style.background='#0a0f12'; rBtn.style.color='var(--muted)'; rBtn.style.borderColor='var(--border)'; hint.textContent='Simulated generation, adjustable intensity & live charts.'; }
+                        else { rBtn.style.background='#fff'; rBtn.style.color='#0a0a0a'; rBtn.style.borderColor='#fff'; sBtn.style.background='#0a0f12'; sBtn.style.color='var(--muted)'; sBtn.style.borderColor='var(--border)'; hint.textContent='Real hardware — 0 kW until device connected, no intensity controls.'; }
+                        localStorage.setItem('dashboardMode', m);
+                    }
+                    sBtn?.addEventListener('click', ()=>{ m='simulation'; sync(); });
+                    rBtn?.addEventListener('click', ()=>{ m='real'; sync(); });
+                    sync();
+                })();
+            </script>
+        </div>
+    </div>
+
+    <script type="module" src="./js/app.js"></script>
+</body>
+
+</html>

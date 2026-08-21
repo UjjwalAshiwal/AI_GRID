@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Renewable Grid Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="./css/style.css">
+
+</head>
+
+<body>
+
+    <div class="app-grid">
+
+        <!-- SIDEBAR — retractable -->
+        <aside class="sidebar">
+            <button id="navToggle" class="nav-toggle" title="Collapse"><i class="fa-solid fa-chevron-left"></i></button>
+            <div class="brand">
+                <div class="logo">☀️</div>
+                <div class="brand-text">
+                    <div class="title">RenewGrid</div>
+                    <div class="subtitle">Control Center</div>
+                </div>
+            </div>
+
+            <nav class="nav">
+                <button class="nav-btn active" data-tab="dashboard" title="Dashboard"><i class="fa-solid fa-gauge"></i> <span class="nav-label">Dashboard</span></button>
+                <button class="nav-btn" data-tab="sources" title="Sources"><i class="fa-solid fa-bolt"></i> <span class="nav-label">Sources</span></button>
+                <button class="nav-btn" data-tab="destinations" title="Destinations"><i class="fa-solid fa-location-arrow"></i> <span class="nav-label">Destinations</span></button>
+                <button class="nav-btn" data-tab="grid" title="GRID"><i class="fa-solid fa-network-wired"></i> <span class="nav-label">GRID</span></button>
+                <button class="nav-btn" data-tab="storage" title="Storage"><i class="fa-solid fa-battery-half"></i> <span class="nav-label">Storage</span></button>
+                <button class="nav-btn" data-tab="analytics" title="Analytics"><i class="fa-solid fa-chart-line"></i> <span class="nav-label">Analytics</span></button>
+                <button class="nav-btn" data-tab="settings" title="Settings"><i class="fa-solid fa-cog"></i> <span class="nav-label">Settings</span></button>
+            </nav>
+
+            <div class="sidebar-bottom">
+                <div class="role-pill">Role: <strong id="roleLabel">Admin</strong></div>
+                <div class="small-actions">
+                    <button id="themeToggleBtn" class="icon-btn" title="Toggle theme"><i
+                            class="fa-solid fa-moon"></i></button>
+                    <button id="logoutBtn"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN -->
+        <main class="main">
+            <header class="topbar">
+                <div id="hybridTopbar" style="display:flex; align-items:center; gap:10px; background:#0a0a0a; border:1px solid var(--border); border-radius:999px; padding:6px 10px 6px 12px; font-family:var(--mono);">
+                    <span style="font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); display:flex; align-items:center; gap:6px; white-space:nowrap;"><i class="fa-solid fa-code-branch" style="color:#10b981;"></i> Hybrid</span>
+                    <div class="pill-row" id="hybridTopRow" style="margin:0; padding:8px 10px; cursor:pointer;">
+                        <div style="min-width:0;"><div class="pill-label" style="font-size:10px;">Charge while running</div><div class="pill-hint" id="hybridTopHint" style="font-size:9px;">OFF</div></div>
+                        <button type="button" class="pill-toggle" id="hybridTopToggleBtn" data-toggle="hybridTopToggle"><span class="knob"></span></button>
+                    </div>
+                    <input type="checkbox" id="hybridTopToggle" hidden />
+                </div>
+                <div id="modeBadge" style="display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:10px; letter-spacing:0.14em; text-transform:uppercase; border:1px solid #1f1f1f; border-radius:999px; padding:7px 14px; background:#0a0a0a; color:#888;">
+                    <span id="modeDot" style="width:8px; height:8px; border-radius:999px; background:#fff;"></span>
+                    <span id="modeBadgeLabel">SIMULATION</span>
+                    <span style="opacity:0.5; font-size:9px;">• linked from login</span>
+                </div>
+
+                <div class="top-actions">
+                    <div class="stat quick">
+                        <div class="label">Total Generation</div>
+                        <div id="topGen" class="value">-- kW</div>
+                    </div>
+                    <div class="stat quick">
+                        <div class="label">Total Output</div>
+                        <div id="topOut" class="value">-- kW</div>
+                    </div>
+                    <div class="stat quick">
+                        <div class="label">Battery Stored</div>
+                        <div id="topStored" class="value">-- kWh</div>
+                    </div>
+                    <div class="avatar">UA</div>
+                </div>
+            </header>
+
+            <section class="content">
+
+                <div id="realBanner" style="display:none; background:#0f1a14; border:1px solid rgba(16,185,129,0.30); border-radius:12px; padding:12px 16px; font-family:var(--mono); font-size:12px; color:#10b981; margin-bottom:12px; align-items:center; gap:8px;"><i class="fa-solid fa-tower-broadcast"></i> REAL MODE — No simulation — all sources 0 kW. Connect hardware to stream live data. Intensity locked.</div>
+                <!-- DASHBOARD: Combined charts (ONLY combined) -->
+                <div class="tab active" id="tab-dashboard">
+                    <div class="cards-row">
+
+                        <article class="card">
+                            <h4>Total Generation vs Output (combined)</h4>
+                            <canvas id="combinedChart" height="140"></canvas>
+                        </article>
+
+                        <article class="card">
+                            <h4>Combined Inputs (stacked view)</h4>
+                            <canvas id="stackedInputsChart" height="140"></canvas>
+                        </article>
+
+                        <article class="card">
+                            <h4>Energy Summary</h4>
+                            <p><strong>Generated (kWh):</strong> <span id="summaryGen">0</span></p>
+                            <p><strong>Sent / Used (kWh):</strong> <span id="summaryOut">0</span></p>
+                            <p><strong>Saved to Batteries (kWh):</strong> <span id="summarySaved">0</span></p>
+                            <p><strong>Total Battery Capacity (kWh):</strong> <span id="summaryCapacity">0</span></p>
+                        </article>
+                    </div>
+
+                    <div class="cards-row">
+                        <article class="card">
+                            <h4>Quick Controls</h4>
+                            <p>Set all source-to-output %</p>
+                            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                                <button id="forceAllToOutput" class="action-btn">All → Output</button>
+                                <button id="forceAllToBattery" class="action-btn">All → Battery</button>
+                            </div>
+                            <p style="margin-top:8px;"><strong>Energy Saved (kWh):</strong> <span id="energySaved">0</span></p>
+                            <p style="margin-top:10px;font-family:var(--mono);font-size:11px;color:var(--muted)">Destinations moved to <strong style="color:var(--accent)">Destinations</strong> tab → manage incoming / consuming / wasting there.</p>
+                            <!-- keep hidden container for legacy JS compatibility -->
+                            <div id="destinationsContainer" style="display:none"></div>
+                            <button id="addDestinationBtn" style="display:none"></button>
+                        </article>
+
+                        <article class="card">
+                            <h4>Alerts & Events</h4>
+                            <ul id="alertList"></ul>
+                            <div id="logBox"></div>
+                        </article>
+                    </div>
+
+                </div>
+
+                <!-- SOURCES: per-source controls and charts -->
+                <div class="tab" id="tab-sources">
+                    <div class="cards-row">
+
+                        <!-- Solar -->
+                        <article class="card">
+                            <h4>Solar Panels</h4>
+                            <div class="status-badge" id="solarStatus">Active</div>
+                            <div id="solarGauge" class="gauge">0 kW</div>
+                            <canvas id="solarChart" class="mini-chart"></canvas>
+
+                            <label>Sunlight Level:</label>
+                            <input type="range" id="solarLight" min="0" max="100" value="80">
+                            <span id="solarLightValue">80%</span>
+
+                            <div class="pill-row on">
+                                <div><div class="pill-label">Enable Solar</div><div class="pill-hint" id="solarHint">ON • feeding grid</div></div>
+                                <button type="button" class="pill-toggle on" data-toggle="solarEnable"><span class="knob"></span></button>
+                            </div>
+                            <input type="checkbox" id="solarEnable" checked hidden />
+
+                            <label>Send to Output (%)</label>
+                            <input type="range" id="solarToOut" min="0" max="100" value="80">
+                            <span id="solarToOutVal">80%</span>
+                        </article>
+
+                        <!-- Wind -->
+                        <article class="card">
+                            <h4>Wind Turbine</h4>
+                            <div class="status-badge" id="windStatus">Active</div>
+                            <div id="windGauge" class="gauge">0 kW</div>
+                            <canvas id="windChart" class="mini-chart"></canvas>
+
+                            <label>Wind Speed (m/s):</label>
+                            <input type="range" id="windSpeed" min="0" max="25" value="8">
+                            <span id="windSpeedValue">8 m/s</span>
+
+                            <div class="pill-row on">
+                                <div><div class="pill-label">Enable Wind</div><div class="pill-hint" id="windHint">ON • feeding grid</div></div>
+                                <button type="button" class="pill-toggle on" data-toggle="windEnable"><span class="knob"></span></button>
+                            </div>
+                            <input type="checkbox" id="windEnable" checked hidden />
+
+                            <label>Send to Output (%)</label>
+                            <input type="range" id="windToOut" min="0" max="100" value="70">
+                            <span id="windToOutVal">70%</span>
+                        </article>
+
+                        <!-- Hydro -->
+                        <article class="card">
+                            <h4>Hydro Dam</h4>
+                            <div class="status-badge" id="hydroStatus">Active</div>
+                            <div id="hydroGauge" class="gauge">0 kW</div>
+                            <canvas id="hydroChart" class="mini-chart"></canvas>
+
+                            <label>Flow (%)</label>
+                            <input type="range" id="hydroFlow" min="0" max="100" value="50">
+                            <span id="hydroFlowVal">50%</span>
+
+                            <div class="pill-row on">
+                                <div><div class="pill-label">Enable Hydro</div><div class="pill-hint" id="hydroHint">ON • feeding grid</div></div>
+                                <button type="button" class="pill-toggle on" data-toggle="hydroEnable"><span class="knob"></span></button>
+                            </div>
+                            <input type="checkbox" id="hydroEnable" checked hidden />
+
+                            <label>Send to Output (%)</label>
+                            <input type="range" id="hydroToOut" min="0" max="100" value="60">
+                            <span id="hydroToOutVal">60%</span>
+                        </article>
+
+                        <!-- Diesel -->
+                        <article class="card">
+                            <h4>Backup Diesel</h4>
+                            <div class="status-badge" id="dieselStatus">Offline</div>
+                            <div id="dieselGauge" class="gauge">0 kW</div>
+                            <canvas id="dieselChart" class="mini-chart"></canvas>
+
+                            <div class="pill-row">
+                                <div><div class="pill-label">Enable Diesel</div><div class="pill-hint" id="dieselHint">OFF • standby</div></div>
+                                <button type="button" class="pill-toggle" data-toggle="dieselEnable"><span class="knob"></span></button>
+                            </div>
+                            <input type="checkbox" id="dieselEnable" hidden />
+
+                            <label>Send to Output (%)</label>
+                            <input type="range" id="dieselToOut" min="0" max="100" value="100">
+                            <span id="dieselToOutVal">100%</span>
+                        </article>
+
+                    </div>
+                </div>
+
+                <!-- DESTINATIONS: per-destination incoming/consuming/wasting + analytics (mirrors Sources) -->
+                <div class="tab" id="tab-destinations">
+                    <div class="cards-row">
+                        <article class="card">
+                            <h4>System Efficiency</h4>
+                            <div id="destEfficiencyGauge" class="gauge">0%</div>
+                            <p id="destEfficiencyText" class="mono" style="font-size:12px;color:var(--muted)">--</p>
+                            <div id="destSummaryStats" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px">
+                                <div style="text-align:center;padding:8px;border:1px solid var(--border);border-radius:8px"><div style="font-family:var(--mono);font-size:9px;letter-spacing:0.1em;color:var(--muted-2)">INCOMING</div><strong id="destSumIncoming" style="font-family:var(--mono)">0 kW</strong><div id="destSumIncomingKwh" style="font-family:var(--mono);font-size:10px;color:var(--muted-2)">0 kWh</div></div>
+                                <div style="text-align:center;padding:8px;border:1px solid rgba(16,185,129,0.2);border-radius:8px"><div style="font-family:var(--mono);font-size:9px;letter-spacing:0.1em;color:#10b981">CONSUMING</div><strong id="destSumConsuming" style="font-family:var(--mono);color:#10b981">0 kW</strong><div id="destSumConsumingKwh" style="font-family:var(--mono);font-size:10px;color:var(--muted-2)">0 kWh</div></div>
+                                <div style="text-align:center;padding:8px;border:1px solid rgba(245,158,11,0.2);border-radius:8px"><div style="font-family:var(--mono);font-size:9px;letter-spacing:0.1em;color:#f59e0b">WASTING</div><strong id="destSumWasting" style="font-family:var(--mono);color:#f59e0b">0 kW</strong><div id="destSumWastingKwh" style="font-family:var(--mono);font-size:10px;color:var(--muted-2)">0 kWh</div></div>
+                            </div>
+                        </article>
+                        <article class="card">
+                            <h4>Destination Trends — Incoming / Consuming / Wasting</h4>
+                            <canvas id="destTrendChart" height="140"></canvas>
+                        </article>
+                        <article class="card" style="border-radius:16px;">
+                            <h4>Add Destination <span style="font-family:var(--mono); font-size:9px; color:#555; border:1px solid var(--border); border-radius:999px; padding:2px 8px; margin-left:6px;">guided</span></h4>
+                            <div style="display:flex; flex-direction:column; gap:14px; margin-top:4px;">
+                                <div>
+                                    <label style="font-family:var(--mono); font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted);">Destination name</label>
+                                    <div style="position:relative; margin-top:6px;">
+                                        <i class="fa-solid fa-location-dot" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#333; font-size:12px;"></i>
+                                        <input id="newDestName" type="text" placeholder="Hospital, Data Center, Village…" style="width:100%; padding:12px 12px 12px 32px; border-radius:999px;" />
+                                    </div>
+                                    <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">
+                                        <button type="button" class="preset-name" data-name="Hospital" style="font-family:var(--mono); font-size:10px; padding:5px 10px; border-radius:999px; border:1px solid var(--border); background:#0a0f12; color:var(--muted); cursor:pointer;">Hospital</button>
+                                        <button type="button" class="preset-name" data-name="Factory" style="font-family:var(--mono); font-size:10px; padding:5px 10px; border-radius:999px; border:1px solid var(--border); background:#0a0f12; color:var(--muted); cursor:pointer;">Factory</button>
+                                        <button type="button" class="preset-name" data-name="Village" style="font-family:var(--mono); font-size:10px; padding:5px 10px; border-radius:999px; border:1px solid var(--border); background:#0a0f12; color:var(--muted); cursor:pointer;">Village</button>
+                                        <button type="button" class="preset-name" data-name="Grid" style="font-family:var(--mono); font-size:10px; padding:5px 10px; border-radius:999px; border:1px solid var(--border); background:#0a0f12; color:var(--muted); cursor:pointer;">Grid</button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                                        <label style="font-family:var(--mono); font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted); margin:0;">Demand — kW</label>
+                                        <span id="newDestDemandLabel" style="font-family:var(--mono); font-size:12px; font-weight:700; background:#0a0f12; border:1px solid var(--border); border-radius:999px; padding:4px 10px;">80 kW</span>
+                                    </div>
+                                    <div style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+                                        <button type="button" id="newDestMinus" style="width:36px; height:36px; border-radius:999px; border:1px solid var(--border); background:#111; color:var(--text); cursor:pointer; font-size:16px;">−</button>
+                                        <input id="newDestDemandSlider" type="range" min="0" max="1000" value="80" style="flex:1;" />
+                                        <button type="button" id="newDestPlus" style="width:36px; height:36px; border-radius:999px; border:1px solid #fff; background:#fff; color:#0a0a0a; cursor:pointer; font-weight:700; font-size:16px;">+</button>
+                                    </div>
+                                    <input id="newDestDemand" type="number" value="80" style="margin-top:8px;" />
+                                </div>
+                                <div>
+                                    <div style="display:flex; justify-content:space-between; font-family:var(--mono); font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted);"><span>Efficiency — consuming</span><span id="newDestEffLabel" style="color:var(--text); font-weight:700;">85%</span></div>
+                                    <input id="newDestEffSlider" type="range" min="50" max="98" value="85" style="width:100%; margin-top:6px;" />
+                                    <div style="height:10px; border-radius:999px; overflow:hidden; display:flex; border:1px solid var(--border); margin-top:8px;"><div id="effUseBar" style="width:85%; background:#10b981; transition:width 0.2s;"></div><div id="effWasteBar" style="width:15%; background:#f59e0b; transition:width 0.2s;"></div></div>
+                                    <div style="display:flex; justify-content:space-between; font-family:var(--mono); font-size:10px; margin-top:6px;"><span id="effUseTxt" style="color:#10b981;">68 kW use</span><span id="effWasteTxt" style="color:#f59e0b;">12 kW waste</span></div>
+                                    <input id="newDestEff" type="number" value="85" min="50" max="98" style="display:none;" />
+                                </div>
+                                <div>
+                                    <label style="font-family:var(--mono); font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted);">Priority</label>
+                                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:6px; margin-top:8px;">
+                                        <button type="button" class="prio-btn active" data-prio="1" style="font-family:var(--mono); font-size:11px; padding:10px 0; border-radius:999px; border:1px solid #fff; background:#fff; color:#0a0a0a; font-weight:700; cursor:pointer;">1 • Critical</button>
+                                        <button type="button" class="prio-btn" data-prio="2" style="font-family:var(--mono); font-size:11px; padding:10px 0; border-radius:999px; border:1px solid var(--border); background:#0a0f12; color:var(--muted); cursor:pointer;">2 • High</button>
+                                        <button type="button" class="prio-btn" data-prio="3" style="font-family:var(--mono); font-size:11px; padding:10px 0; border-radius:999px; border:1px solid var(--border); background:#0a0f12; color:var(--muted); cursor:pointer;">3 • Normal</button>
+                                        <button type="button" class="prio-btn" data-prio="4" style="font-family:var(--mono); font-size:11px; padding:10px 0; border-radius:999px; border:1px solid var(--border); background:#0a0f12; color:var(--muted); cursor:pointer;">4 • Low</button>
+                                    </div>
+                                    <select id="newDestPriority" style="display:none;"><option value="1">1 — Critical</option><option value="2" selected>2 — High</option><option value="3">3 — Normal</option><option value="4">4 — Low</option></select>
+                                </div>
+                                <button id="addDestPageBtn" class="action-btn" style="margin-top:4px;width:100%; padding:14px; border-radius:999px; font-weight:700;">+ Add Destination</button>
+                                <div id="newDestPreview" style="font-family:var(--mono); font-size:10px; color:var(--muted); text-align:center;">Will request <span style="color:var(--text);">80kW</span> at <span style="color:var(--text);">P2</span> • 85% efficient</div>
+                            </div>
+                        </article>
+                    </div>
+
+                    <div id="destinationsGrid" class="cards-row"></div>
+
+                    <div class="cards-row">
+                        <article class="card">
+                            <h4>Consuming Share (kWh cum.)</h4>
+                            <canvas id="analyticsDestConsumePie" height="140"></canvas>
+                        </article>
+                        <article class="card">
+                            <h4>Wasting vs Consuming (Live kW)</h4>
+                            <canvas id="analyticsDestWasteBar" height="140"></canvas>
+                        </article>
+                        <article class="card">
+                            <h4>Destination Leaderboard</h4>
+                            <div id="destLeaderboard" style="font-family:var(--mono);font-size:11px"></div>
+                        </article>
+                    </div>
+                </div>
+
+                <!-- GRID -->
+                <div class="tab" id="tab-grid">
+                    <h2>GRID</h2>
+                    <p style="font-family:var(--mono); font-size:11px; color:var(--muted);">Grid connection & routing — hybrid excess charges battery while destinations run</p>
+                    <div class="cards-row" style="margin-top:14px;">
+                        <article class="card">
+                            <h4>GRID Mode</h4>
+                            <select id="gridModeGrid">
+                                <option value="grid">GRID-CONNECTED</option>
+                                <option value="island">ISLANDED</option>
+                                <option value="hybrid">HYBRID</option>
+                            </select>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px;">
+                                <div style="text-align:center; padding:10px; background:#0a0f12; border:1px solid var(--border); border-radius:10px;"><div style="font-family:var(--mono); font-size:9px; letter-spacing:0.08em; color:var(--muted-2);">IMPORT</div><strong id="gridImportGrid" style="font-family:var(--mono);">0 kW</strong></div>
+                                <div style="text-align:center; padding:10px; background:#0a0f12; border:1px solid rgba(16,185,129,0.2); border-radius:10px;"><div style="font-family:var(--mono); font-size:9px; letter-spacing:0.08em; color:#10b981;">EXPORT</div><strong id="gridExportGrid" style="font-family:var(--mono); color:#10b981;">0 kW</strong></div>
+                            </div>
+                        </article>
+                        <article class="card" style="border-color: rgba(16,185,129,0.25);">
+                            <h4>Hybrid — Topbar</h4>
+                            <p style="font-family:var(--mono); font-size:11px; color:var(--muted);">Use topbar Hybrid ON/OFF. Excess output → battery.</p>
+                            <div style="display:flex; gap:8px; margin-top:10px; font-family:var(--mono); font-size:11px; flex-wrap:wrap;">
+                                <span style="padding:4px 8px; border:1px solid var(--border); border-radius:999px;">Gen surplus <strong id="hybridGenSurplusGrid">0 kW</strong></span>
+                                <span style="padding:4px 8px; border:1px solid rgba(16,185,129,0.25); border-radius:999px; color:#10b981;">To batt <strong id="hybridToBattGrid">0 kW</strong></span>
+                            </div>
+                            <p style="font-family:var(--mono); font-size:10px; color:var(--muted); margin-top:8px;">Slider in <strong style="color:var(--text)">Settings → Power</strong></p>
+                        </article>
+                    </div>
+                </div>
+
+                <!-- STORAGE: batteries overview & controls -->
+                <div class="tab" id="tab-storage">
+                    <h2>Battery Storage</h2>
+                    <p>Multiple batteries behave like real storage (kWh capacity, charge/discharge rates)</p>
+
+                    <div id="batteriesContainer" class="cards-row"></div>
+
+                    <article class="card">
+                        <h4>Add Battery</h4>
+                        <label>Capacity (kWh)</label>
+                        <input id="newBatteryCapacity" type="number" value="500" />
+                        <label>Max Charge Rate (kW)</label>
+                        <input id="newBatteryChargeRate" type="number" value="200" />
+                        <label>Max Discharge Rate (kW)</label>
+                        <input id="newBatteryDischargeRate" type="number" value="200" />
+                        <button id="addBatteryBtn" class="action-btn">Add Battery</button>
+                    </article>
+                </div>
+
+                <!-- ANALYTICS (placeholder) -->
+                <div class="tab" id="tab-analytics">
+                    <h2>Analytics</h2>
+                    <div class="cards-row">
+
+                        <article class="card">
+                            <h4>Source Contribution (kWh)</h4>
+                            <canvas id="analyticsSourcePie"></canvas>
+                        </article>
+
+                        <article class="card">
+                            <h4>Generation Trend (kW)</h4>
+                            <canvas id="analyticsGenTrend"></canvas>
+                        </article>
+
+                        <article class="card">
+                            <h4>Battery Storage Trend (kWh)</h4>
+                            <canvas id="analyticsBatteryTrend"></canvas>
+                        </article>
+
+                        <article class="card">
+                            <h4>Destination Consumption (kW)</h4>
+                            <canvas id="analyticsDestinations"></canvas>
+                        </article>
+
+                        <article class="card">
+                            <h4>Forecast (Next 15 minutes)</h4>
+                            <p><strong>Forecast Gen:</strong> <span id="forecastGen">--</span> kW</p>
+                            <p><strong>Forecast Battery:</strong> <span id="forecastBattery">--</span> kWh</p>
+                        </article>
+
+                    </div>
+
+                </div>
+
+
+                <!-- SETTINGS — rebuilt layout -->
+                <div class="tab" id="tab-settings">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:18px; flex-wrap:wrap;">
+                        <div>
+                            <h2 style="font-size:22px; font-weight:700; letter-spacing:-0.03em; display:flex; align-items:center; gap:10px; margin:0;"><i class="fa-solid fa-sliders" style="width:32px; height:32px; display:flex; align-items:center; justify-content:center; background:var(--surface); border:1px solid var(--border); border-radius:10px; font-size:14px; color:var(--muted);"></i> Settings</h2>
+                            <p style="font-family:var(--mono); font-size:11px; color:var(--muted); margin-top:6px; max-width:520px;">Tune simulation, power routing and appearance. Changes apply live to both <strong style="color:var(--text)">Real & Simulation</strong>.</p>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:10px;">
+                            <span style="display:flex; align-items:center; gap:6px; border:1px solid var(--border); background:var(--surface); border-radius:999px; padding:6px 10px; color:var(--muted);"><span style="width:6px; height:6px; border-radius:999px; background:#10b981; box-shadow:0 0 8px rgba(16,185,129,0.5);"></span> Live</span>
+                            <span style="color:var(--muted-2);">Hybrid in topbar • ON/OFF</span>
+                        </div>
+                    </div>
+
+                    <div style="display:grid; gap:18px;">
+
+                        <!-- Appearance -->
+                        <section style="background:var(--surface); border:1px solid var(--border); border-radius:16px; overflow:hidden;">
+                            <div style="display:flex; align-items:center; gap:12px; padding:14px 16px; border-bottom:1px solid var(--border); background:rgba(255,255,255,0.02);">
+                                <div style="width:36px; height:36px; border-radius:10px; background:#0a0a0a; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; color:var(--muted);"><i class="fa-solid fa-palette"></i></div>
+                                <div style="flex:1;">
+                                    <div style="font-family:var(--mono); font-size:11px; letter-spacing:0.12em; text-transform:uppercase; font-weight:700;">Appearance</div>
+                                    <div style="font-family:var(--mono); font-size:10px; color:var(--muted);">Theme & display — light / dark / solar / blue / green</div>
+                                </div>
+                                <span style="font-family:var(--mono); font-size:9px; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted-2); border:1px solid var(--border); border-radius:999px; padding:4px 8px;">01</span>
+                            </div>
+                            <div style="padding:14px;">
+                                <div class="cards-row" style="margin-bottom:0;">
+                                    <article class="card" style="margin:0;">
+                                        <h4>Theme</h4>
+                                        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:8px;">
+                                            <button id="themeLight" class="action-btn" style="justify-content:center;"><i class="fa-solid fa-sun" style="margin-right:6px;"></i> Light</button>
+                                            <button id="themeDark" class="action-btn" style="justify-content:center;"><i class="fa-solid fa-moon" style="margin-right:6px;"></i> Dark</button>
+                                            <button id="themeSolar" class="action-btn" style="justify-content:center;"><i class="fa-solid fa-solar-panel" style="margin-right:6px;"></i> Solar</button>
+                                            <button id="themeBlue" class="action-btn" style="justify-content:center;"><i class="fa-solid fa-droplet" style="margin-right:6px;"></i> Blue</button>
+                                            <button id="themeGreen" class="action-btn" style="justify-content:center;"><i class="fa-solid fa-leaf" style="margin-right:6px;"></i> Green</button>
+                                        </div>
+                                    </article>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Simulation -->
+                        <section style="background:var(--surface); border:1px solid var(--border); border-radius:16px; overflow:hidden;">
+                            <div style="display:flex; align-items:center; gap:12px; padding:14px 16px; border-bottom:1px solid var(--border); background:rgba(255,255,255,0.02);">
+                                <div style="width:36px; height:36px; border-radius:10px; background:#0a0a0a; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; color:var(--muted);"><i class="fa-solid fa-flask"></i></div>
+                                <div style="flex:1;">
+                                    <div style="font-family:var(--mono); font-size:11px; letter-spacing:0.12em; text-transform:uppercase; font-weight:700;">Simulation</div>
+                                    <div style="font-family:var(--mono); font-size:10px; color:var(--muted);">Speed, presets & weather — synthetic generation</div>
+                                </div>
+                                <span style="font-family:var(--mono); font-size:9px; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted-2); border:1px solid var(--border); border-radius:999px; padding:4px 8px;">02</span>
+                            </div>
+                            <div style="padding:14px; display:grid; gap:14px;">
+                                <div class="cards-row" style="margin-bottom:0;">
+                                    <article class="card" style="margin:0;">
+                                        <h4>Simulation Speed</h4>
+                                        <p style="font-family:var(--mono); font-size:11px; color:var(--muted);">Scale time for faster demo</p>
+                                        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:10px;">
+                                            <button class="action-btn simSpeed" data-speed="1" style="justify-content:center;">1x</button>
+                                            <button class="action-btn simSpeed" data-speed="2" style="justify-content:center;">2x</button>
+                                            <button class="action-btn simSpeed" data-speed="5" style="justify-content:center;">5x</button>
+                                            <button class="action-btn simSpeed" data-speed="10" style="justify-content:center;">10x</button>
+                                        </div>
+                                    </article>
+                                    <article class="card" style="margin:0;">
+                                        <h4>Demo Presets</h4>
+                                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                                            <button class="action-btn preset" data-preset="sunny" style="justify-content:center;">☀️ Sunny</button>
+                                            <button class="action-btn preset" data-preset="windy" style="justify-content:center;">💨 High Wind</button>
+                                            <button class="action-btn preset" data-preset="hydro" style="justify-content:center;">🌊 Hydro</button>
+                                            <button class="action-btn preset" data-preset="diesel" style="justify-content:center;">⛽ Diesel</button>
+                                        </div>
+                                    </article>
+                                </div>
+                                <div class="cards-row" style="margin-bottom:0;">
+                                    <article class="card" style="margin:0;">
+                                        <h4>Weather Engine</h4>
+                                        <label style="display:flex; align-items:center; gap:8px; margin-bottom:10px; cursor:pointer;">
+                                            <input type="checkbox" id="weatherEnabled" style="width:16px; height:16px; accent-color:var(--accent);">
+                                            <span style="font-family:var(--mono); font-size:11px; font-weight:600;">Enable Weather Simulation</span>
+                                        </label>
+                                        <label style="font-family:var(--mono); font-size:10px; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted);">Manual Time <span id="weatherTime" style="color:var(--text); font-weight:700; margin-left:6px;">--:--</span></label>
+                                        <input type="range" id="weatherTimeSlider" min="0" max="1440" value="720" style="margin-top:6px;">
+                                        <label style="display:flex; align-items:center; gap:8px; margin-top:10px; cursor:pointer;">
+                                            <input type="checkbox" id="weatherAutoClock" style="width:14px; height:14px; accent-color:var(--accent);">
+                                            <span style="font-family:var(--mono); font-size:10px;">Auto Time Progress</span>
+                                        </label>
+                                        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:12px; font-family:var(--mono); font-size:11px;">
+                                            <div style="text-align:center; padding:8px; background:#0a0f12; border:1px solid var(--border); border-radius:8px;"><div style="font-size:9px; color:var(--muted-2); letter-spacing:0.08em;">SUN</div><strong id="weatherSun">--</strong></div>
+                                            <div style="text-align:center; padding:8px; background:#0a0f12; border:1px solid var(--border); border-radius:8px;"><div style="font-size:9px; color:var(--muted-2); letter-spacing:0.08em;">WIND</div><strong id="weatherWind">--</strong></div>
+                                            <div style="text-align:center; padding:8px; background:#0a0f12; border:1px solid var(--border); border-radius:8px;"><div style="font-size:9px; color:var(--muted-2); letter-spacing:0.08em;">HYDRO</div><strong id="weatherHydro">--</strong></div>
+                                        </div>
+                                    </article>
+                                    <article class="card" style="margin:0; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center;">
+                                        <h4 style="width:100%;">Weather Controls</h4>
+                                        <p style="font-family:var(--mono); font-size:11px; color:var(--muted); margin-bottom:12px;">Push weather into simulation tick</p>
+                                        <button id="updateWeather" class="action-btn" style="width:100%; justify-content:center;"><i class="fa-solid fa-cloud-arrow-up" style="margin-right:6px;"></i> Update Weather</button>
+                                        <p style="font-family:var(--mono); font-size:10px; color:var(--muted-2); margin-top:10px;">Hybrid topbar toggle works in both Real & Simulation</p>
+                                    </article>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Power & Routing -->
+                        <section style="background:var(--surface); border:1px solid var(--border); border-radius:16px; overflow:hidden;">
+                            <div style="display:flex; align-items:center; gap:12px; padding:14px 16px; border-bottom:1px solid var(--border); background:rgba(255,255,255,0.02);">
+                                <div style="width:36px; height:36px; border-radius:10px; background:#0a0a0a; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; color:#10b981;"><i class="fa-solid fa-bolt"></i></div>
+                                <div style="flex:1;">
+                                    <div style="font-family:var(--mono); font-size:11px; letter-spacing:0.12em; text-transform:uppercase; font-weight:700;">Power & Routing</div>
+                                    <div style="font-family:var(--mono); font-size:10px; color:var(--muted);">Grid, hybrid & auto-balance — how energy flows</div>
+                                </div>
+                                <span style="font-family:var(--mono); font-size:9px; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted-2); border:1px solid var(--border); border-radius:999px; padding:4px 8px;">03</span>
+                            </div>
+                            <div style="padding:14px; display:grid; gap:14px;">
+                                <div class="cards-row" style="margin-bottom:0;">
+                                    <article class="card" style="margin:0;">
+                                        <h4>Grid Mode</h4>
+                                        <select id="gridMode" style="margin-top:6px;">
+                                            <option value="grid">GRID-CONNECTED</option>
+                                            <option value="island">ISLANDED</option>
+                                            <option value="hybrid">HYBRID</option>
+                                        </select>
+                                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px;">
+                                            <div style="text-align:center; padding:10px; background:#0a0f12; border:1px solid var(--border); border-radius:10px;"><div style="font-family:var(--mono); font-size:9px; letter-spacing:0.08em; color:var(--muted-2);">IMPORT</div><strong id="gridImport" style="font-family:var(--mono);">0 kW</strong></div>
+                                            <div style="text-align:center; padding:10px; background:#0a0f12; border:1px solid rgba(16,185,129,0.2); border-radius:10px;"><div style="font-family:var(--mono); font-size:9px; letter-spacing:0.08em; color:#10b981;">EXPORT</div><strong id="gridExport" style="font-family:var(--mono); color:#10b981;">0 kW</strong></div>
+                                        </div>
+                                    </article>
+                                    <article class="card" style="margin:0;">
+                                        <h4>Control Modes</h4>
+                                        <div class="pill-row" style="margin-top:6px;">
+                                            <div><div class="pill-label" style="font-size:11px;">Auto-Balance</div><div class="pill-hint">System tunes sources & diesel</div></div>
+                                            <label style="position:relative; display:inline-flex; align-items:center; cursor:pointer;">
+                                                <input type="checkbox" id="autoBalanceToggle" style="position:absolute; opacity:0; width:0; height:0;">
+                                                <span style="width:36px; height:20px; background:#1f1f1f; border:1px solid #2a2a2a; border-radius:999px; position:relative; display:inline-block; transition:all 0.2s;"></span>
+                                            </label>
+                                        </div>
+                                        <p style="font-family:var(--mono); font-size:10px; color:var(--muted); margin-top:8px;">Let system tune <code style="background:#0a0f12; padding:2px 4px; border-radius:4px; border:1px solid var(--border);">toOutPct</code> & diesel based on SOC.</p>
+                                    </article>
+                                </div>
+                                <article class="card" style="margin:0; border-color: rgba(16,185,129,0.25); background: linear-gradient(180deg, #0f1a14 0%, #13171a 100%);">
+                                    <h4 style="color:#10b981; border-bottom-color: rgba(16,185,129,0.15);">Hybrid Charge — Battery + Output <span style="font-size:9px; background:#10b981; color:#0a0a0a; padding:2px 6px; border-radius:999px; margin-left:6px; font-weight:700;">TOPBAR TOGGLE</span></h4>
+                                    <p style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:10px;">When output &gt; demand, charge battery from excess while destinations run — no need to shift all sources to battery. <strong style="color:var(--text);">Topbar ON/OFF</strong> for quick access.</p>
+                                    <div class="pill-row" id="hybridRow" style="margin-top:0;">
+                                        <div><div class="pill-label">Hybrid Mode</div><div class="pill-hint" id="hybridHint">OFF • output only</div></div>
+                                        <button type="button" class="pill-toggle" id="hybridToggleBtn" data-toggle="hybridToggle"><span class="knob"></span></button>
+                                    </div>
+                                    <input type="checkbox" id="hybridToggle" hidden />
+                                    <div id="hybridControls" style="display:none; margin-top:12px;">
+                                        <label>Excess to Battery (%) — controls switching</label>
+                                        <input type="range" id="hybridPct" min="0" max="100" value="100">
+                                        <div style="display:flex; justify-content:space-between; font-family:var(--mono); font-size:11px; margin-top:4px;">
+                                            <span style="color:var(--muted);">0% → all to grid</span>
+                                            <strong id="hybridPctVal">100%</strong>
+                                            <span style="color:#10b981;">100% → all to battery</span>
+                                        </div>
+                                        <p style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:6px;">Works in <strong style="color:var(--text)">both Real & Simulation</strong> • remaining output after destinations is split by this slider.</p>
+                                    </div>
+                                    <div style="display:flex; gap:8px; margin-top:10px; font-family:var(--mono); font-size:11px; flex-wrap:wrap;">
+                                        <span style="padding:4px 8px; border:1px solid var(--border); border-radius:999px; background:#0a0f12;">Gen surplus: <strong id="hybridGenSurplus">0 kW</strong></span>
+                                        <span style="padding:4px 8px; border:1px solid rgba(16,185,129,0.25); border-radius:999px; color:#10b981; background:rgba(16,185,129,0.08);">To battery: <strong id="hybridToBatt">0 kW</strong></span>
+                                    </div>
+                                </article>
+                            </div>
+                        </section>
+
+                        <!-- System -->
+                        <section style="background:var(--surface); border:1px solid var(--border); border-radius:16px; overflow:hidden;">
+                            <div style="display:flex; align-items:center; gap:12px; padding:14px 16px; border-bottom:1px solid var(--border); background:rgba(255,255,255,0.02);">
+                                <div style="width:36px; height:36px; border-radius:10px; background:#0a0a0a; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; color:#ff6b6b;"><i class="fa-solid fa-rotate"></i></div>
+                                <div style="flex:1;">
+                                    <div style="font-family:var(--mono); font-size:11px; letter-spacing:0.12em; text-transform:uppercase; font-weight:700;">System</div>
+                                    <div style="font-family:var(--mono); font-size:10px; color:var(--muted);">Reset & maintenance — does not affect topbar Hybrid</div>
+                                </div>
+                                <span style="font-family:var(--mono); font-size:9px; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted-2); border:1px solid var(--border); border-radius:999px; padding:4px 8px;">04</span>
+                            </div>
+                            <div style="padding:14px;">
+                                <div class="cards-row" style="margin-bottom:0;">
+                                    <article class="card" style="margin:0; border-color: rgba(255,62,62,0.15);">
+                                        <h4 style="border-bottom-color: rgba(255,62,62,0.12);">Reset Options</h4>
+                                        <p style="font-family:var(--mono); font-size:11px; color:var(--muted);">Clear stored energy or destinations — use with care.</p>
+                                        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:10px;">
+                                            <button id="resetBatteries" class="action-btn" style="background:#111; color:var(--text); border-color:var(--border); justify-content:center;"><i class="fa-solid fa-battery-quarter" style="margin-right:6px;"></i> Batteries</button>
+                                            <button id="resetDestinations" class="action-btn" style="background:#111; color:var(--text); border-color:var(--border); justify-content:center;"><i class="fa-solid fa-location-dot" style="margin-right:6px;"></i> Dests</button>
+                                            <button id="resetAll" class="action-btn" style="background:#ff3e3e; color:#fff; border-color:#ff3e3e; justify-content:center;"><i class="fa-solid fa-trash" style="margin-right:6px;"></i> All</button>
+                                        </div>
+                                    </article>
+                                </div>
+                            </div>
+                        </section>
+
+                    </div>
+                </div>
+
+
+
+            </section>
+        </main>
+    </div>
+
+    <!-- confirm modal — minimal clean -->
+    <div id="confirmModal" style="display:none; position:fixed; inset:0; z-index:100; align-items:center; justify-content:center; padding:16px;">
+        <div id="confirmBackdrop" style="position:absolute; inset:0; background:rgba(0,0,0,0.70); backdrop-filter:blur(6px);"></div>
+        <div style="position:relative; width:420px; max-width:92vw; background:#0a0a0a; border:1px solid #1f1f1f; border-radius:16px; padding:20px; box-shadow:0 20px 60px rgba(0,0,0,0.6);">
+            <div style="display:flex; gap:12px; align-items:flex-start;">
+                <div style="width:40px; height:40px; border-radius:12px; background:rgba(239,68,68,0.10); border:1px solid rgba(239,68,68,0.20); display:flex; align-items:center; justify-content:center; color:#f87171; flex-shrink:0;"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                <div style="flex:1; min-width:0;">
+                    <div style="font-family:var(--mono); font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:#888;">Confirm</div>
+                    <div id="confirmTitle" style="font-size:15px; font-weight:600; margin-top:4px; line-height:1.3;">Remove?</div>
+                    <div id="confirmDesc" style="font-family:var(--mono); font-size:12px; color:#888; margin-top:8px; line-height:1.5;"></div>
+                </div>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:20px;">
+                <button id="confirmCancel" style="flex:1; padding:12px; border-radius:999px; border:1px solid #1f1f1f; background:#111; color:var(--text); font-family:var(--mono); font-size:11px; letter-spacing:0.12em; text-transform:uppercase; cursor:pointer;">Cancel</button>
+                <button id="confirmOk" style="flex:1; padding:12px; border-radius:999px; border:1px solid #ef4444; background:#ef4444; color:#fff; font-family:var(--mono); font-size:11px; letter-spacing:0.12em; text-transform:uppercase; font-weight:700; cursor:pointer; box-shadow:0 6px 20px rgba(239,68,68,0.30);">Remove</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script type="module" src="./js/app.js"></script>
+</body>
+
+</html>
