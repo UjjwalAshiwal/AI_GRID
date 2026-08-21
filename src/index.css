@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+* { scrollbar-width: thin; scrollbar-color: #222 transparent; }
+::-webkit-scrollbar { width: 5px; height: 5px }
+::-webkit-scrollbar-thumb { background: #222; border-radius: 999px }
+::-webkit-scrollbar-track { background: transparent }
+
+:root {
+  --bg: #000; --surface:#0a0a0a; --surface2:#111; --surface3:#1a1a1a;
+  --border:#1f1f1f; --border2:#2a2a2a; --text:#fff; --muted:#888; --muted2:#555;
+  --grid:#1a1a1a; --tooltip-bg:#0a0a0a; --tooltip-border:#222;
+}
+html.light {
+  --bg:#f5f5f4; --surface:#ffffff; --surface2:#fafafa; --surface3:#f0f0f0;
+  --border:#e5e5e5; --border2:#d4d4d4; --text:#0a0a0a; --muted:#71717a; --muted2:#a1a1aa;
+  --grid:#e5e5e5; --tooltip-bg:#ffffff; --tooltip-border:#e5e5e5;
+}
+html.light * { scrollbar-color: #ddd transparent }
+html.light ::-webkit-scrollbar-thumb { background:#ddd }
+
+body { background: var(--bg); color: var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; transition: background 0.25s, color 0.25s; }
+.mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+
+/* light mode overrides for hardcoded tailwind arbitrary values */
+html.light .bg-\[\#0a0a0a\] { background-color: var(--surface) !important; }
+html.light .bg-black { background-color: var(--bg) !important; }
+html.light .bg-\[\#111\] { background-color: var(--surface2) !important; }
+html.light .bg-white { background-color: #0a0a0a !important; color: #fff !important; }
+html.light .text-white { color: #0a0a0a !important; }
+html.light .text-black { color: #fff !important; }
+html.light .border-\[\#1f1f1f\] { border-color: var(--border) !important; }
+html.light .border-\[\#1a1a1a\] { border-color: var(--border) !important; }
+html.light .border-\[\#222\] { border-color: var(--border) !important; }
+html.light .text-\[\#888\], html.light .text-\[\#999\], html.light .text-\[\#666\] { color: var(--muted) !important; }
+html.light .text-\[\#555\], html.light .text-\[\#333\] { color: var(--muted2) !important; }
+html.light aside { background: var(--surface) !important; }
+html.light header { background: color-mix(in srgb, var(--bg) 80%, transparent) !important; }
+html.light input, html.light select { background: var(--surface) !important; color: var(--text) !important; border-color: var(--border) !important; }
+html.light .bg-\[\#0a0a0a\].border { background: var(--surface) !important; }
